@@ -1,8 +1,10 @@
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+
 
 (async () => {
     // 1. 启动浏览器（调试时可关闭无头模式）
     const browser = await puppeteer.launch({
+        executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
         headless: false,  // 设为 true 则隐藏浏览器界面
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
@@ -39,6 +41,19 @@ import puppeteer from "puppeteer";
         await contractInput.type('GCXJHMSC00123', {delay: 100})
 
         await page.click('.el-button--primary')
+
+        await page.waitForSelector('::-p-xpath(//div[@class="cell" and text()="GCXJHMSC00123"])');
+
+        const dblclickElement = await page.$('::-p-xpath(//div[@class="cell" and text()="GCXJHMSC00123"])')
+
+        setTimeout(() => {
+            console.log(dblclickElement);
+            dblclickElement.click({
+                delay: 100,
+                count: 2
+            });
+        }, 1000);
+
 
         await page.screenshot({
             path: 'baidu_cat_search.png',
