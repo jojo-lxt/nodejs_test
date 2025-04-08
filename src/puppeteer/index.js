@@ -1,6 +1,9 @@
 import puppeteer from "puppeteer-core";
-import * as fs from "node:fs";
+import fs from "fs";
+import {downloadAllImages, moveLatestReceipt} from "./functions.js";
 
+// 程序运行时等待函数
+const waitSync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 (async () => {
     // 1. 启动浏览器（调试时可关闭无头模式）
@@ -10,9 +13,11 @@ import * as fs from "node:fs";
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
-    console.log(fs.readFileSync('./cookies.json'))
+    // 读取保存的cookies
+    const cookiesText = fs.readFileSync('./cookies.json', 'utf-8');
+    const cookies = JSON.parse(cookiesText);
 
-    // await browser.setCookie(JSON.parse(fs.readFileSync('./cookies.json')))
+    await browser.setCookie(...cookies);
 
     // 2. 打开新页面
     const page = await browser.newPage();
@@ -23,46 +28,133 @@ import * as fs from "node:fs";
             waitUntil: 'networkidle2' // 等待页面完全加载
         });
 
-        // await page.type('#username', 'L32300GCV', { delay: 100 });
-        // await page.type('#zcdl', 'XMn@2024.0524', { delay: 100 });
+        // 读取保存的localStorage
+        const localStorageData = fs.readFileSync('./local_storage.json', 'utf-8');
 
-        await page.waitForSelector('.el-submenu__title', {
-            visible: true,
-            timeout: 60000
-        });
+        await page.evaluate((data) => {
+            const parsedData = JSON.parse(data);
+            for (const key in parsedData) {
+                localStorage.setItem(key, parsedData[key]);
+            }
+        }, localStorageData);
 
-        await page.click('.el-submenu__title');
+        await page.reload({
+            waitUntil: 'networkidle2' // 等待页面完全加载
+        })
 
-        await page.click('.el-menu-item')
+        async function handlePage(contractID, savePath) {
+            // 展开贷后管理
+            const submenuElement = await page.waitForSelector('.el-submenu__title', {
+                visible: true,
+                timeout: 60000
+            });
 
-        const targetElements = await page.$$('::-p-xpath(//li[contains(@class, "el-menu-item")])');
+            await submenuElement.click();
 
-        await targetElements[1].click();
+            await waitSync(1000)
 
-        await page.waitForSelector('input[placeholder="请输入合同号"]');
+            // 点击委托诉讼
+            await page.waitForSelector('::-p-xpath(//span[text()="委托诉讼"])', {
+                visible: true,
+                timeout: 60000
+            });
 
-        const contractInput = await page.$('input[placeholder="请输入合同号"]');
+            await page.click('::-p-xpath(//span[text()="委托诉讼"])');
 
-        await contractInput.type('GCXJHMSC00123', {delay: 100})
+            // const targetElements = await page.$$('::-p-xpath(//li[contains(@class, "el-menu-item")])');
+            //
+            // await targetElements[1].click();
 
-        await page.click('.el-button--primary')
+            // 输入合同号并搜索
+            await page.waitForSelector('input[placeholder="请输入合同号"]');
 
-        await page.waitForSelector('::-p-xpath(//div[@class="cell" and text()="GCXJHMSC00123"])');
+            const contractInput = await page.$('input[placeholder="请输入合同号"]');
 
-        const dblclickElement = await page.$('::-p-xpath(//div[@class="cell" and text()="GCXJHMSC00123"])')
+            await contractInput.type(contractID, {delay: 100})
 
-        await dblclickElement.click({
-            delay: 100,
-            count: 2
-        });
+            await page.click('.el-button--primary')
 
+            // 双击第一条信息
+            const dblclickElement = await page.waitForSelector(`::-p-xpath(//div[@class="cell" and text()='${contractID}'])`, {
+                visible: true
+            });
 
-        await page.screenshot({
-            path: 'baidu_cat_search.png',
-            fullPage: true // 截取完整滚动页
-        });
+            await dblclickElement.evaluate(el => {
+                const event = new MouseEvent('dblclick', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                });
+                el.dispatchEvent(event);
+            })
 
-        console.log('截图已保存为 baidu_cat_search.png');
+            // 点击查看合同相关信息
+            const contractInformation = await page.waitForSelector('::-p-xpath(//span[text()="查看合同相关信息"])', {
+                visible: true,
+                timeout: 60000
+            })
+
+            await contractInformation.click()
+
+            await waitSync(1000)
+
+            // 点击档案资料
+            const archivalData = await page.waitForSelector('::-p-xpath(//div[text()="档案资料"])', {
+                visible: true,
+                timeout: 60000
+            })
+
+            await archivalData.click()
+
+            // 获取所有图片 URL
+            await waitSync(3000)
+
+            const imageUrls = await page.evaluate(() => {
+                const images = Array.from(document.querySelectorAll('img'));
+                return images.map(img => img.src).filter(img => img.startsWith('https://af.faf.com.cn/'));
+            });
+
+            console.log(`合同号: ${contractID}, 图片数量: ${imageUrls.length}`);
+
+            // 下载所有图片
+            await downloadAllImages(imageUrls, savePath);
+
+            // 返回委托诉讼反馈情况
+            await page.click('::-p-xpath(//span[text()="               委托诉讼反馈情况               "])');
+
+            // 点击文档下载
+            const documentDownload = await page.waitForSelector('::-p-xpath(//span[text()="文档下载"])', {
+                visible: true,
+                timeout: 60000
+            });
+
+            await documentDownload.click()
+
+            // 下载电子回单
+            const buttonXPath = '::-p-xpath(//tr[contains(@class,"el-table__row")]//div[text()="电子回单"]/ancestor::tr//button[contains(@class,"el-button--text")])';
+            const downloadButton = await page.waitForSelector(buttonXPath, {
+                visible: true,
+                timeout: 60000
+            });
+
+            await downloadButton.click()
+
+            // 等待下载完成
+            await waitSync(5000);
+
+            // 将下载的文件移动到指定目录
+            await moveLatestReceipt("C:\\Users\\13478\\Downloads", savePath);
+
+            console.log(`合同号: ${contractID}，信息整理完成`);
+
+            await page.reload({
+                waitUntil: 'networkidle2' // 等待页面完全加载
+            })
+        }
+
+        await handlePage('GCXJHMSC00123', 'C:\\Users\\13478\\OneDrive\\桌面\\一汽系统下载\\1')
+
+        await handlePage('GCAHAHQZ00688', 'C:\\Users\\13478\\OneDrive\\桌面\\一汽系统下载\\2')
 
     } catch (error) {
         console.error('操作失败:', error.message);

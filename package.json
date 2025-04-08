@@ -12,6 +12,7 @@
   "dependencies": {
     "@dsnp/parquetjs": "^1.8.5",
     "apache-arrow": "^18.1.0",
+    "axios": "^1.8.4",
     "cors": "^2.8.5",
     "dayjs": "^1.11.11",
     "express": "^4.19.2",
