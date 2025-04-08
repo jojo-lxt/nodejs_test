@@ -1,4 +1,5 @@
 import puppeteer from "puppeteer-core";
+import * as fs from "node:fs";
 
 
 (async () => {
@@ -9,17 +10,21 @@ import puppeteer from "puppeteer-core";
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
+    console.log(fs.readFileSync('./cookies.json'))
+
+    // await browser.setCookie(JSON.parse(fs.readFileSync('./cookies.json')))
+
     // 2. 打开新页面
     const page = await browser.newPage();
     await page.setViewport({ width: 1500, height: 800 });
 
     try {
-        await page.goto('https://ualex-gf.faf.com.cn/', {
+        await page.goto('https://apmcv.17ebank.com:9117/dsp/', {
             waitUntil: 'networkidle2' // 等待页面完全加载
         });
 
-        await page.type('#username', 'L32300GCV', { delay: 100 });
-        await page.type('#zcdl', 'XMn@2024.0524', { delay: 100 });
+        // await page.type('#username', 'L32300GCV', { delay: 100 });
+        // await page.type('#zcdl', 'XMn@2024.0524', { delay: 100 });
 
         await page.waitForSelector('.el-submenu__title', {
             visible: true,
@@ -46,13 +51,10 @@ import puppeteer from "puppeteer-core";
 
         const dblclickElement = await page.$('::-p-xpath(//div[@class="cell" and text()="GCXJHMSC00123"])')
 
-        setTimeout(() => {
-            console.log(dblclickElement);
-            dblclickElement.click({
-                delay: 100,
-                count: 2
-            });
-        }, 1000);
+        await dblclickElement.click({
+            delay: 100,
+            count: 2
+        });
 
 
         await page.screenshot({
