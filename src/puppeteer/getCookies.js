@@ -18,8 +18,8 @@ import fs from "node:fs";
             waitUntil: 'networkidle2' // 等待页面完全加载
         });
 
-        await page.type('#username', 'L32300GCV', { delay: 100 });
-        await page.type('#zcdl', 'XMn@2024.0524', { delay: 100 });
+        /*await page.type('#username', 'L32300GCV', { delay: 100 });
+        await page.type('#zcdl', 'XMn@2024.0524', { delay: 100 });*/
 
         await page.waitForSelector('.el-submenu__title', {
             visible: true,

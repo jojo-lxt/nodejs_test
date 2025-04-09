@@ -1,12 +1,17 @@
 import puppeteer from "puppeteer-core";
 import fs from "fs";
 import {downloadAllImages, moveLatestReceipt} from "./functions.js";
+import XLSX from "xlsx";
 
 // 程序运行时等待函数
 const waitSync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+const excelPath = "C:\\Users\\13478\\Documents\\WeChat Files\\wxid_r5g8r67hoepn22\\FileStorage\\File\\2025-04\\租赁案件.xlsx";
+
+const targetDir = "C:\\Users\\13478\\Desktop\\一汽系统下载";
+
 (async () => {
-    // 1. 启动浏览器（调试时可关闭无头模式）
+    // 启动浏览器（调试时可关闭无头模式）
     const browser = await puppeteer.launch({
         executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
         headless: false,  // 设为 true 则隐藏浏览器界面
@@ -19,7 +24,7 @@ const waitSync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     await browser.setCookie(...cookies);
 
-    // 2. 打开新页面
+    // 打开新页面
     const page = await browser.newPage();
     await page.setViewport({ width: 1500, height: 800 });
 
@@ -65,8 +70,13 @@ const waitSync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
             //
             // await targetElements[1].click();
 
+            await waitSync(3000)
+
             // 输入合同号并搜索
-            await page.waitForSelector('input[placeholder="请输入合同号"]');
+            await page.waitForSelector('input[placeholder="请输入合同号"]', {
+                visible: true,
+                timeout: 60000
+            });
 
             const contractInput = await page.$('input[placeholder="请输入合同号"]');
 
@@ -152,9 +162,25 @@ const waitSync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
             })
         }
 
-        await handlePage('GCXJHMSC00123', 'C:\\Users\\13478\\OneDrive\\桌面\\一汽系统下载\\1')
+        // 读取 Excel 文件
+        const workbook = XLSX.readFile(excelPath);
 
-        await handlePage('GCAHAHQZ00688', 'C:\\Users\\13478\\OneDrive\\桌面\\一汽系统下载\\2')
+        const worksheet = workbook.Sheets['Sheet1'];
+
+        const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        // 提取合同号
+        const contractIDs = data.map(row => row[0]).filter(Boolean);
+
+        if (contractIDs.length > 0) {
+            console.log(`共有 ${contractIDs.length} 个合同号开始处理`);
+            for (const contractID of contractIDs) {
+                const index = contractIDs.indexOf(contractID) + 15;
+                if (index !== 0) {
+                    await handlePage(contractID, `${targetDir}\\${index}`);
+                }
+            }
+        }
 
     } catch (error) {
         console.error('操作失败:', error.message);
