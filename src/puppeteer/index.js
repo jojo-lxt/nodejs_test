@@ -8,7 +8,7 @@ const waitSync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const excelPath = "C:\\Users\\13478\\Documents\\WeChat Files\\wxid_r5g8r67hoepn22\\FileStorage\\File\\2025-04\\租赁案件.xlsx";
 
-const targetDir = "C:\\Users\\13478\\Desktop\\一汽系统下载";
+const targetDir = "C:\\Users\\13478\\OneDrive\\桌面\\一汽系统下载";
 
 (async () => {
     // 启动浏览器（调试时可关闭无头模式）
@@ -175,9 +175,18 @@ const targetDir = "C:\\Users\\13478\\Desktop\\一汽系统下载";
         if (contractIDs.length > 0) {
             console.log(`共有 ${contractIDs.length} 个合同号开始处理`);
             for (const contractID of contractIDs) {
-                const index = contractIDs.indexOf(contractID) + 15;
-                if (index !== 0) {
+                const index = contractIDs.indexOf(contractID);
+                if (index === 0) continue;
+
+                try {
                     await handlePage(contractID, `${targetDir}\\${index}`);
+                } catch (error) {
+                    console.error(`处理合同号 ${contractID} 失败:`, error.message);
+
+                    // 处理失败时，继续处理下一个合同号
+                    await page.reload({ waitUntil: 'networkidle2' });
+
+                    continue;
                 }
             }
         }

@@ -3,11 +3,24 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "src/puppeteer/test.js",
+  "bin": "src/puppeteer/test.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "package": "pkg . --output getCookies.exe"
+  },
+  "pkg": {
+    "scripts": [
+      "src/puppeteer/test.js"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "output": "dist",
+    "esModule": true
   },
   "dependencies": {
     "@dsnp/parquetjs": "^1.8.5",
