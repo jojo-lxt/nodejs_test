@@ -24,7 +24,7 @@ const fs = require('fs');
 
         await page.waitForSelector('.el-submenu__title', {
             visible: true,
-            timeout: 60000
+            timeout: 300000
         });
 
         const cookies = await browser.cookies();

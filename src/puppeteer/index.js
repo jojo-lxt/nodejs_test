@@ -173,7 +173,7 @@ const waitSync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
         const contractIDs = data.map(row => row[0]).filter(Boolean);
 
         if (contractIDs.length > 0) {
-            console.log(`共有 ${contractIDs.length} 个合同号开始处理`);
+            console.log(`共有 ${contractIDs.length - 1} 个合同号开始处理`);
             for (const contractID of contractIDs) {
                 const index = contractIDs.indexOf(contractID);
                 if (index === 0) continue;
