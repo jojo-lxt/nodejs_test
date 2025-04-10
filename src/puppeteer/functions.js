@@ -1,6 +1,6 @@
-import path from "path";
-import axios from "axios";
-import fs from "fs";
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
 
 async function downloadImage(url, targetDir) {
     const parsedUrl = new URL(url);
@@ -28,7 +28,7 @@ async function downloadImage(url, targetDir) {
 
 
 // 下载所有图片
-export async function downloadAllImages(urls, targetDir) {
+async function downloadAllImages(urls, targetDir) {
     await fs.promises.mkdir(targetDir, { recursive: true });
     await Promise.allSettled(
         urls.map(url =>
@@ -83,7 +83,7 @@ async function findLatestElectronicReceipt(sourceDir) {
  * @param {string} sourceDir 源目录
  * @param {string} targetDir 目标目录
  */
-export async function moveLatestReceipt(sourceDir, targetDir) {
+async function moveLatestReceipt(sourceDir, targetDir) {
     try {
         const fileName = await findLatestElectronicReceipt(sourceDir);
         if (!fileName) return;
@@ -112,3 +112,5 @@ export async function moveLatestReceipt(sourceDir, targetDir) {
         console.error('[错误] 移动文件失败:', error.message);
     }
 }
+
+module.exports = {downloadAllImages, moveLatestReceipt}

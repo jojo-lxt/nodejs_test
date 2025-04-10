@@ -1,5 +1,5 @@
-import puppeteer from "puppeteer-core";
-import fs from "node:fs";
+const puppeteer = require('puppeteer-core');
+const fs = require('fs');
 
 (async () => {
     // 1. 启动浏览器（调试时可关闭无头模式）
@@ -18,19 +18,21 @@ import fs from "node:fs";
             waitUntil: 'networkidle2' // 等待页面完全加载
         });
 
-        /*await page.type('#username', 'L32300GCV', { delay: 100 });
-        await page.type('#zcdl', 'XMn@2024.0524', { delay: 100 });*/
+        // await page.type('#username', 'L32300GCV', { delay: 100 });
+        // await page.type('#zcdl', 'XMn@2024.0524', { delay: 100 });
 
         await page.waitForSelector('.el-submenu__title', {
             visible: true,
-            timeout: 60000
+            timeout: 300000
         });
 
         const cookies = await browser.cookies();
         fs.writeFileSync('./cookies.json', JSON.stringify(cookies));
 
         const localStorageData = await page.evaluate(() => {
-            return JSON.stringify(localStorage);
+            const jsonData = JSON.stringify(localStorage);
+            console.log(jsonData)
+            return jsonData;
         });
 
         fs.writeFileSync('./local_storage.json', localStorageData);

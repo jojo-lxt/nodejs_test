@@ -1,37 +1,37 @@
-import puppeteer from "puppeteer-core";
-import fs from "fs";
-import {downloadAllImages, moveLatestReceipt} from "./functions.js";
-import XLSX from "xlsx";
+const puppeteer = require('puppeteer-core');
+const fs = require('fs');
+const XLSX = require('xlsx');
+const {downloadAllImages, moveLatestReceipt} = require("./functions")
 
 // 程序运行时等待函数
 const waitSync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-const excelPath = "C:\\Users\\13478\\Documents\\WeChat Files\\wxid_r5g8r67hoepn22\\FileStorage\\File\\2025-04\\租赁案件.xlsx";
-
-const targetDir = "C:\\Users\\13478\\OneDrive\\桌面\\一汽系统下载";
-
 (async () => {
-    // 启动浏览器（调试时可关闭无头模式）
-    const browser = await puppeteer.launch({
-        executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-        headless: false,  // 设为 true 则隐藏浏览器界面
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-
-    // 读取保存的cookies
-    const cookiesText = fs.readFileSync('./cookies.json', 'utf-8');
-    const cookies = JSON.parse(cookiesText);
-
-    await browser.setCookie(...cookies);
-
-    // 打开新页面
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1500, height: 800 });
-
     try {
+        // 启动浏览器（调试时可关闭无头模式）
+        const browser = await puppeteer.launch({
+            executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            headless: false,  // 设为 true 则隐藏浏览器界面
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+
+        // 读取保存的cookies
+        const cookiesText = fs.readFileSync('./cookies.json', 'utf-8');
+        const cookies = JSON.parse(cookiesText);
+
+        await browser.setCookie(...cookies);
+
+        // 打开新页面
+        const page = await browser.newPage();
+        await page.setViewport({ width: 1500, height: 800 });
+
         await page.goto('https://apmcv.17ebank.com:9117/dsp/', {
             waitUntil: 'networkidle2' // 等待页面完全加载
         });
+
+        // 读取路径
+        const pathText = fs.readFileSync('./path.json', 'utf-8');
+        const {excelPath, targetDir, downloadPath} = JSON.parse(pathText);
 
         // 读取保存的localStorage
         const localStorageData = fs.readFileSync('./local_storage.json', 'utf-8');
@@ -153,7 +153,7 @@ const targetDir = "C:\\Users\\13478\\OneDrive\\桌面\\一汽系统下载";
             await waitSync(5000);
 
             // 将下载的文件移动到指定目录
-            await moveLatestReceipt("C:\\Users\\13478\\Downloads", savePath);
+            await moveLatestReceipt(downloadPath, savePath);
 
             console.log(`合同号: ${contractID}，信息整理完成`);
 
@@ -163,7 +163,7 @@ const targetDir = "C:\\Users\\13478\\OneDrive\\桌面\\一汽系统下载";
         }
 
         // 读取 Excel 文件
-        const workbook = XLSX.readFile(excelPath);
+        const workbook = XLSX.readFile(`./${excelPath}.xlsx`);
 
         const worksheet = workbook.Sheets['Sheet1'];
 

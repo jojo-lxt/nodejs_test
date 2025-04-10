@@ -2,25 +2,23 @@
   "name": "nodejs_test",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
-  "main": "src/puppeteer/test.js",
-  "bin": "src/puppeteer/test.js",
+  "main": "src/puppeteer/index.js",
+  "bin": "src/puppeteer/index.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "package": "pkg . --output getCookies.exe"
+    "package": "pkg . -o \"C:/Users/13478/OneDrive/桌面/案件自动化整理脚本/puppeteer.exe\" --targets node18-win-x64 --public"
   },
   "pkg": {
     "scripts": [
-      "src/puppeteer/test.js"
+      "src/puppeteer/index.js"
     ],
-    "targets": [
-      "node18-win-x64"
-    ],
-    "output": "dist",
-    "esModule": true
+    "assets": [
+      "node_modules/axios/**/*",
+      "!node_modules/axios/{test,examples}/**"
+    ]
   },
   "dependencies": {
     "@dsnp/parquetjs": "^1.8.5",
