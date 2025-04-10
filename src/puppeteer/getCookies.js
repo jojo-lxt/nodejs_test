@@ -6,12 +6,13 @@ const fs = require('fs');
     const browser = await puppeteer.launch({
         executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
         headless: false,  // 设为 true 则隐藏浏览器界面
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--start-maximized'],
+        defaultViewport: null
     });
 
     // 2. 打开新页面
     const page = await browser.newPage();
-    await page.setViewport({ width: 1500, height: 800 });
+    // await page.setViewport({ width: 1500, height: 800 });
 
     try {
         await page.goto('https://ualex-gf.faf.com.cn/', {
@@ -23,7 +24,7 @@ const fs = require('fs');
 
         await page.waitForSelector('.el-submenu__title', {
             visible: true,
-            timeout: 300000
+            timeout: 60000
         });
 
         const cookies = await browser.cookies();

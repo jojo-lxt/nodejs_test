@@ -12,7 +12,8 @@ const waitSync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
         const browser = await puppeteer.launch({
             executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
             headless: false,  // 设为 true 则隐藏浏览器界面
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--start-maximized'],
+            defaultViewport: null
         });
 
         // 读取保存的cookies
@@ -23,7 +24,6 @@ const waitSync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
         // 打开新页面
         const page = await browser.newPage();
-        await page.setViewport({ width: 1500, height: 800 });
 
         await page.goto('https://apmcv.17ebank.com:9117/dsp/', {
             waitUntil: 'networkidle2' // 等待页面完全加载
