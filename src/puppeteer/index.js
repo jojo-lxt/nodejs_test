@@ -1,51 +1,99 @@
 const puppeteer = require('puppeteer-core');
 const fs = require('fs');
-const XLSX = require('xlsx');
-const {downloadAllImages, moveLatestReceipt} = require("./functions")
+const {downloadAllImages, moveLatestReceipt} = require("./functions");
+const XLSX = require("xlsx");
 
 // 程序运行时等待函数
 const waitSync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 (async () => {
+    const browser = await puppeteer.launch({
+        executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        headless: false,
+        args: [
+            '--disable-blink-features=AutomationControlled',
+            '--disable-infobars',
+            '--start-maximized',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process',
+            '--disable-ipc-flooding-protection',
+            '--disable-renderer-backgrounding'
+        ],
+        defaultViewport: null
+    });
+
+    // 存储原始页面引用
+    let originalPage = await browser.newPage();
+
+    await originalPage.setExtraHTTPHeaders({
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
+    });
+
+    await originalPage.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        window._originalDebugger = window.debugger;
+        window.debugger = function(){};
+    });
+
+    // 读取路径
+    const pathText = fs.readFileSync('./path.json', 'utf-8');
+    const {excelPath, targetDir, downloadPath} = JSON.parse(pathText);
+
     try {
-        // 启动浏览器（调试时可关闭无头模式）
-        const browser = await puppeteer.launch({
-            executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-            headless: false,  // 设为 true 则隐藏浏览器界面
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--start-maximized'],
-            defaultViewport: null
+        // 导航到登录页面
+        await originalPage.goto('https://ualex-gf.faf.com.cn/', {
+            waitUntil: 'networkidle2',
+            timeout: 60000
         });
 
-        // 读取保存的cookies
-        const cookiesText = fs.readFileSync('./cookies.json', 'utf-8');
-        const cookies = JSON.parse(cookiesText);
+        console.log('请手动完成登录操作...');
 
-        await browser.setCookie(...cookies);
+        // 等待跳转到main.html
+        await originalPage.waitForNavigation({
+            waitUntil: 'networkidle2',
+            timeout: 300000
+        });
+        console.log('已跳转到主页面:', originalPage.url());
 
-        // 打开新页面
-        const page = await browser.newPage();
-
-        await page.goto('https://apmcv.17ebank.com:9117/dsp/', {
-            waitUntil: 'networkidle2' // 等待页面完全加载
+        // 创建新页面打开事件监听器
+        let targetPage = null;
+        const newPagePromise = new Promise((resolve) => {
+            browser.on('targetcreated', async (target) => {
+                if (target.url().includes('https://apmcv.17ebank.com:9117/dsp/')) {
+                    console.log('检测到目标页面创建:', target.url());
+                    targetPage = await target.page();
+                    resolve(targetPage);
+                }
+            });
         });
 
-        // 读取路径
-        const pathText = fs.readFileSync('./path.json', 'utf-8');
-        const {excelPath, targetDir, downloadPath} = JSON.parse(pathText);
+        console.log('请手动点击按钮打开目标页面...');
 
-        // 读取保存的localStorage
-        const localStorageData = fs.readFileSync('./local_storage.json', 'utf-8');
+        // 等待新页面打开或当前页面跳转
+        const openedPage = await Promise.race([
+            newPagePromise,
+            originalPage.waitForNavigation({
+                waitUntil: 'networkidle2',
+                timeout: 300000
+            }).then(() => originalPage)
+        ]);
 
-        await page.evaluate((data) => {
-            const parsedData = JSON.parse(data);
-            for (const key in parsedData) {
-                localStorage.setItem(key, parsedData[key]);
-            }
-        }, localStorageData);
+        // 确定最终要操作的页面
+        const page = targetPage || openedPage;
+        console.log('最终操作页面:', page.url());
 
-        await page.reload({
-            waitUntil: 'networkidle2' // 等待页面完全加载
-        })
+        // 确保页面加载完成
+        await page.waitForNavigation({
+            waitUntil: 'networkidle2',
+            timeout: 300000
+        });
 
         async function handlePage(contractID, savePath) {
             // 展开贷后管理
@@ -192,9 +240,9 @@ const waitSync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
         }
 
     } catch (error) {
-        console.error('操作失败:', error.message);
+        console.error('操作失败:', error);
     } finally {
-        // 8. 关闭浏览器
+        // 调试时可注释关闭
         // await browser.close();
     }
 })();
