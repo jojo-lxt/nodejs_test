@@ -165,7 +165,7 @@ const waitSync = (ms) => new Promise(resolve => setTimeout(resolve, ms));
             await archivalData.click()
 
             // 获取所有图片 URL
-            await waitSync(3000)
+            await waitSync(5000)
 
             const imageUrls = await page.evaluate(() => {
                 const images = Array.from(document.querySelectorAll('img'));

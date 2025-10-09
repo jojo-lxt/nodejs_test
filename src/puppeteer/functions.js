@@ -7,23 +7,41 @@ async function downloadImage(url, targetDir) {
     const filename = path.basename(parsedUrl.pathname) || 'default.jpg';
     const filePath = path.join(targetDir, filename);
 
-    // console.log('parsedUrl', parsedUrl, 'filename', filename, 'filePath', filePath);
+    try {
+        console.log(`开始下载: ${filename}`);
 
-    const response = await axios({
-        url,
-        method: 'GET',
-        responseType: 'stream'
-    });
-
-    const writer = fs.createWriteStream(filePath);
-    response.data.pipe(writer);
-
-    return new Promise((resolve, reject) => {
-        writer.on('finish', resolve);
-        writer.on('error', () => {
-            fs.unlink(filePath, reject);
+        const response = await axios({
+            url,
+            method: 'GET',
+            responseType: 'arraybuffer',
+            timeout: 60000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'image/*,*/*'
+            }
         });
-    });
+
+        // 直接将 Buffer 写入文件
+        await fs.promises.writeFile(filePath, response.data);
+
+        const fileSize = (response.data.length / 1024 / 1024).toFixed(2);
+        console.log(`下载完成: ${filename} (${fileSize} MB)`);
+        return filePath;
+
+    } catch (error) {
+        console.error(`下载失败: ${filename}`, error.message);
+
+        // 修复：使用正确的文件清理方式
+        try {
+            await fs.promises.access(filePath);
+            await fs.promises.unlink(filePath);
+            console.log(`已清理不完整文件: ${filename}`);
+        } catch (unlinkError) {
+            // 文件不存在或其他错误，忽略
+        }
+
+        throw error;
+    }
 }
 
 
